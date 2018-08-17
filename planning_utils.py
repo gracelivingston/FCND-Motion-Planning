@@ -40,6 +40,7 @@ def create_grid(data, drone_altitude, safety_distance):
 
     return grid, int(north_min), int(east_min)
 
+sqrt2 = np.sqrt(2)
 
 # Assume all actions cost the same.
 class Action(Enum):
@@ -55,7 +56,11 @@ class Action(Enum):
     EAST = (0, 1, 1)
     NORTH = (-1, 0, 1)
     SOUTH = (1, 0, 1)
-
+    NW = (-1, -1, sqrt2)
+    NE = (-1, 1, sqrt2)
+    SW = (1, -1, sqrt2)
+    SE = (1, 1, sqrt2)
+    
     @property
     def cost(self):
         return self.value[2]
@@ -69,27 +74,27 @@ def valid_actions(grid, current_node):
     """
     Returns a list of valid actions given a grid and current node.
     """
-    valid_actions = list(Action)
+    valid_actions = []
     n, m = grid.shape[0] - 1, grid.shape[1] - 1
     x, y = current_node
 
     # check if the node is off the grid or
     # it's an obstacle
 
-    if x - 1 < 0 or grid[x - 1, y] == 1:
-        valid_actions.remove(Action.NORTH)
-    if x + 1 > n or grid[x + 1, y] == 1:
-        valid_actions.remove(Action.SOUTH)
-    if y - 1 < 0 or grid[x, y - 1] == 1:
-        valid_actions.remove(Action.WEST)
-    if y + 1 > m or grid[x, y + 1] == 1:
-        valid_actions.remove(Action.EAST)
-
+    for a in list(Action):
+        dx, dy, c = a.value
+        if x + dx < 0 or y + dy < 0 or x + dx > n or y + dy > m or (grid[x + dx][y + dy] != 0):
+            continue
+        valid_actions.append(a)
+            
     return valid_actions
 
 
 def a_star(grid, h, start, goal):
 
+
+    start = (int(start[0]), int(start[1]))
+    goal = (int(goal[0]), int(goal[1]))
     path = []
     path_cost = 0
     queue = PriorityQueue()
@@ -98,7 +103,7 @@ def a_star(grid, h, start, goal):
 
     branch = {}
     found = False
-    
+
     while not queue.empty():
         item = queue.get()
         current_node = item[1]
@@ -107,7 +112,7 @@ def a_star(grid, h, start, goal):
         else:              
             current_cost = branch[current_node][0]
             
-        if current_node == goal:        
+        if current_node == goal:
             print('Found a path.')
             found = True
             break
@@ -129,7 +134,7 @@ def a_star(grid, h, start, goal):
         n = goal
         path_cost = branch[n][0]
         path.append(goal)
-        while branch[n][1] != start:
+        while not branch[n][1] == start:
             path.append(branch[n][1])
             n = branch[n][1]
         path.append(branch[n][1])
